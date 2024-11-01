@@ -1,0 +1,23 @@
+services:
+  nginx-proxy-manager:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: nginx-proxy-manager
+    hostname: nginx
+    pull_policy: always
+    restart: always
+    environment:
+      - X_FRAME_OPTIONS="sameorigin"
+    ports:
+      - '80:80'
+      - '443:443'
+      - '8081:81'
+    volumes:
+      - "/var/lib/srv/$USER/docker/jc21/nginx-proxy-manager/latest/rootfs/data/nginx-proxy-manager:/data"
+      - "/var/lib/srv/$USER/docker/jc21/nginx-proxy-manager/latest/rootfs/config/letsencrypt:/etc/letsencrypt"
+      - "/var/lib/srv/$USER/docker/jc21/nginx-proxy-manager/latest/rootfs/config/nginx-proxy-manager:/data/nginx/custom"
+    healthcheck:
+      test: ["CMD", "/usr/bin/check-health"]
+      interval: 10s
+      timeout: 3s
+    extra_hosts:
+      - 'localhost:172.17.0.1'
