@@ -1,17 +1,27 @@
+# nginx proxy address - 
+
 name: nginx-proxy-manager
+x-logging: &default-logging
+  options:
+    max-size: '5m'
+    max-file: '1'
+  driver: json-file
+
 services:
   nginx-proxy-manager:
     image: 'jc21/nginx-proxy-manager:latest'
     container_name: nginx-proxy-manager
-    hostname: ${BASE_HOST_NAME}
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
     restart: always
     pull_policy: always
+    logging: *default-logging
     environment:
       - DISABLE_IPV6=0
+      - TZ=${TZ:-America/New_York}
     ports:
       - '80:80'
       - '443:443'
-      - '8181:81'
+      - '60132:81'
     volumes:
       - /var/lib/srv/$USER/docker/jc21/nginx-proxy-manager/latest/rootfs/config/certs:/etc/letsencrypt
       - /var/lib/srv/$USER/docker/jc21/nginx-proxy-manager/latest/rootfs/data/nginx-proxy-manager:/data
