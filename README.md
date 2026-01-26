@@ -1,27 +1,31 @@
 ## 👋 Welcome to nginx-proxy-manager 🚀
 
-nginx-proxy-manager - Self-hosted Docker Compose deployment
+Docker container for managing Nginx proxy hosts with SSL
 
 ## 📋 Description
 
-Nginx-proxy-manager is a containerized service deployed using Docker Compose. This setup provides a complete, production-ready deployment with proper security defaults, logging, and configuration management.
+Docker container for managing Nginx proxy hosts with SSL
+
+## 🚀 Services
+
+- **proxy**: jc21/nginx-proxy-manager:latest
 
 ## 📦 Installation
 
-### Using curl
-```shell
-curl -q -LSsf "https://raw.githubusercontent.com/composemgr/nginx-proxy-manager/main/docker-compose.yaml" | docker compose -f - up -d
+### Option 1: Quick Install
+```bash
+curl -q -LSsf "https://raw.githubusercontent.com/composemgr/nginx-proxy-manager/main/docker-compose.yaml" -o compose.yml
 ```
 
-### Using git
-```shell
+### Option 2: Git Clone
+```bash
 git clone "https://github.com/composemgr/nginx-proxy-manager" ~/.local/srv/docker/nginx-proxy-manager
 cd ~/.local/srv/docker/nginx-proxy-manager
 docker compose up -d
 ```
 
-### Using composemgr
-```shell
+### Option 3: Using composemgr
+```bash
 composemgr install nginx-proxy-manager
 ```
 
@@ -31,53 +35,49 @@ composemgr install nginx-proxy-manager
 
 ```shell
 TZ=America/New_York
-BASE_HOST_NAME=${HOSTNAME}
-BASE_DOMAIN_NAME=
 ```
+
+See `docker-compose.yaml` for complete list of configurable options.
 
 ## 🌐 Access
 
-- **Web Interface**: http://172.17.0.1:
+- **Web Interface**: http://172.17.0.1:8080
 
 ## 📂 Volumes
 
-- `./rootfs/config/nginx-proxy-manager` - Configuration files
-- `./rootfs/data/nginx-proxy-manager` - Application data
-
-## 🔐 Security
-
-- Change default passwords after first login
-- Use HTTPS via reverse proxy in production
-- Configure authentication as needed
+- `./rootfs/data/nginx-proxy-manager` - Data storage
+- `./rootfs/data/log/nginx-proxy-manager` - Data storage
+- `./rootfs/config/nginx-proxy-manager` - Data storage
 
 ## 🔍 Logging
 
 ```shell
-docker compose logs -f
+docker compose logs -f proxy
 ```
 
 ## 🛠️ Management
 
-### Start services
-```shell
+```bash
+# Start services
 docker compose up -d
-```
 
-### Stop services
-```shell
+# Stop services
 docker compose down
-```
 
-### Update images
-```shell
+# Update to latest images
 docker compose pull && docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Restart services
+docker compose restart
 ```
 
 ## 📋 Requirements
 
 - Docker Engine 20.10+
 - Docker Compose V2+
-- Sufficient disk space for data and logs
 
 ## 🤝 Author
 
