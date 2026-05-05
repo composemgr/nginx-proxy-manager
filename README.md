@@ -45,9 +45,9 @@ See `docker-compose.yaml` for complete list of configurable options.
 
 ## 📂 Volumes
 
-- `./rootfs/data/nginx-proxy-manager` - Data storage
-- `./rootfs/data/log/nginx-proxy-manager` - Data storage
-- `./rootfs/config/nginx-proxy-manager` - Data storage
+- `./volumes/data/nginx-proxy-manager` - Data storage
+- `./volumes/data/log/nginx-proxy-manager` - Data storage
+- `./volumes/config/nginx-proxy-manager` - Data storage
 
 ## 🔍 Logging
 
