@@ -23,9 +23,9 @@ services:
       - '443:443'
       - '60132:81'
     volumes:
-      - './rootfs/data/nginx-proxy-manager:/data'
-      - './rootfs/data/log/nginx-proxy-manager:/config/log'
-      - './rootfs/config/nginx-proxy-manager:/etc/letsencrypt'
+      - './volumes/data/nginx-proxy-manager:/data'
+      - './volumes/data/log/nginx-proxy-manager:/config/log'
+      - './volumes/config/nginx-proxy-manager:/etc/letsencrypt'
     healthcheck:
       test: ['CMD', '/usr/bin/check-health']
       interval: 10s
