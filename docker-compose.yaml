@@ -21,7 +21,7 @@ services:
     ports:
       - '80:80'
       - '443:443'
-      - '60132:81'
+      - '172.17.0.1:60132:81'
     volumes:
       - './volumes/data/nginx-proxy-manager:/data'
       - './volumes/data/log/nginx-proxy-manager:/config/log'
