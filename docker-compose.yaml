@@ -26,7 +26,6 @@ services:
       - '172.17.0.1:60132:81'
     volumes:
       - './volumes/data/nginx-proxy-manager:/data'
-      - './volumes/data/log/nginx-proxy-manager:/config/log'
       - './volumes/config/nginx-proxy-manager:/etc/letsencrypt'
     healthcheck:
       test: ['CMD', '/usr/bin/check-health']
