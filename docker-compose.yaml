@@ -1,4 +1,4 @@
-# nginx proxy address -
+# nginx proxy address - http://172.17.0.1:60132
 
 name: nginx-proxy-manager
 x-logging: &default-logging
@@ -18,6 +18,8 @@ services:
     environment:
       DISABLE_IPV6: 0
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: nginx-proxy-manager
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
     ports:
       - '80:80'
       - '443:443'
@@ -34,8 +36,30 @@ services:
       - 'host.docker.internal:172.17.0.1'
     networks:
       - nginx-proxy-manager
+      - proxy
+      - cloudflare
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://nginx-proxy-manager:81'
+      - 'cloudflare.hostname=nginx-proxy-manager.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.nginx-proxy-manager.entrypoints=http'
+      - 'traefik.http.routers.nginx-proxy-manager-secure.tls=true'
+      - 'traefik.http.routers.nginx-proxy-manager.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.nginx-proxy-manager-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.nginx-proxy-manager.middlewares=nginx-proxy-manager-https-redirect'
+      - 'traefik.http.routers.nginx-proxy-manager-secure.entrypoints=https'
+      - 'traefik.http.routers.nginx-proxy-manager-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.nginx-proxy-manager-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.nginx-proxy-manager-secure.service=nginx-proxy-manager'
+      - 'traefik.http.services.nginx-proxy-manager.loadbalancer.server.port=81'
 
 networks:
   nginx-proxy-manager:
     name: nginx-proxy-manager
     external: false
+  proxy:
+    external: true
+  cloudflare:
+    external: true
