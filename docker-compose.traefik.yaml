@@ -1,0 +1,83 @@
+name: nginx-proxy-manager
+x-logging: &default-logging
+  options:
+    max-size: '5m'
+    max-file: '1'
+  driver: json-file
+
+services:
+  app:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: nginx-proxy-manager-app
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: nginx-proxy-manager-app
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      # Initial admin account, used only when the database is empty
+      DISABLE_AUTH: "false"
+      INITIAL_ADMIN_EMAIL: ${APP_ADMIN_EMAIL:-admin@example.com}
+      INITIAL_ADMIN_PASSWORD: ${APP_ADMIN_PASS:-changeme_admin_password}
+      # Database connection
+      DB_HOST: nginx-proxy-manager-db
+      DB_NAME: ${DB_CREATE_DATABASE_NAME:-nginx_proxy_manager}
+      DB_USER: ${DB_USER_NAME:-nginx_proxy_manager}
+      DB_PASSWORD: ${DB_USER_PASS:-changeme_db_password}
+      DB_ROOT_USER: root
+      DB_ROOT_PASSWORD: ${DB_ROOT_PASS:-changeme_root_password}
+    volumes:
+      - './volumes/data/nginx-proxy-manager/data:/data:z'
+      - './volumes/data/nginx-proxy-manager/letsencrypt:/etc/letsencrypt:z'
+    depends_on:
+      db:
+        condition: service_healthy
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      - 'traefik.http.routers.nginx-proxy-manager-app.entrypoints=http'
+      - 'traefik.http.routers.nginx-proxy-manager-app.rule=Host(`${BASE_HOST_NAME:-$HOSTNAME}`)'
+      - 'traefik.http.routers.nginx-proxy-manager-app.middlewares=nginx-proxy-manager-app-https-redirect'
+      - 'traefik.http.middlewares.nginx-proxy-manager-app-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.nginx-proxy-manager-app-secure.entrypoints=https'
+      - 'traefik.http.routers.nginx-proxy-manager-app-secure.rule=Host(`${BASE_HOST_NAME:-$HOSTNAME}`)'
+      - 'traefik.http.routers.nginx-proxy-manager-app-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.nginx-proxy-manager-app-secure.service=nginx-proxy-manager-app'
+      - 'traefik.http.services.nginx-proxy-manager-app.loadbalancer.server.port=81'
+    networks:
+      - nginx-proxy-manager
+      - traefik
+
+  db:
+    image: postgres:latest
+    container_name: nginx-proxy-manager-db
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: nginx-proxy-manager-db
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: nginx-proxy-manager-db
+      POSTGRES_DB: ${DB_CREATE_DATABASE_NAME:-nginx_proxy_manager}
+      POSTGRES_USER: ${DB_USER_NAME:-nginx_proxy_manager}
+      POSTGRES_PASSWORD: ${DB_USER_PASS:-changeme_db_password}
+    volumes:
+      - './volumes/data/db/postgres/nginx-proxy-manager:/var/lib/postgresql/data:z'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - nginx-proxy-manager
+
+networks:
+  nginx-proxy-manager:
+    name: nginx-proxy-manager
+    external: false
+  traefik:
+    external: true

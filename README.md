@@ -1,14 +1,21 @@
 ## 👋 Welcome to nginx-proxy-manager 🚀
 
-Docker container for managing Nginx proxy hosts with SSL
+An L4 proxy for the automated nginx
 
 ## 📋 Description
 
-Docker container for managing Nginx proxy hosts with SSL
+Nginx Proxy Manager is an L4 proxy with an nginx core and a management UI. It
+lets you create reverse proxy, redirect, and static host definitions through a
+web interface, and handles Let's Encrypt certificates for them. This stack runs
+the management application backed by PostgreSQL.
 
 ## 🚀 Services
 
-- **proxy**: jc21/nginx-proxy-manager:latest
+- **app**: jc21/nginx-proxy-manager:latest
+
+### Infrastructure Components
+
+- **db**: postgres:latest - PostgreSQL database
 
 ## 📦 Installation
 
@@ -21,7 +28,8 @@ curl -q -LSsf "https://raw.githubusercontent.com/composemgr/nginx-proxy-manager/
 ```bash
 git clone "https://github.com/composemgr/nginx-proxy-manager" ~/.local/srv/docker/nginx-proxy-manager
 cd ~/.local/srv/docker/nginx-proxy-manager
-docker compose up -d
+cp default.env .env
+docker compose --env-file .env up -d
 ```
 
 ### Option 3: Using composemgr
@@ -35,43 +43,102 @@ composemgr install nginx-proxy-manager
 
 ```shell
 TZ=America/New_York
+APP_ORG_NAME=Nginx Proxy Manager
+APP_ADMIN_EMAIL=admin@example.com
+APP_ADMIN_PASS=replace-with-a-random-password
+DB_USER_NAME=nginx_proxy_manager
+DB_USER_PASS=replace-with-a-random-password
+DB_ROOT_PASS=replace-with-a-random-password
+DB_CREATE_DATABASE_NAME=nginx_proxy_manager
 ```
+
+`APP_ADMIN_PASS` is only used when the database is empty, so change the
+password from the admin UI after the first login.
 
 See `docker-compose.yaml` for complete list of configurable options.
 
+### Environment Files
+
+`default.env.sample` holds the full set of variables and is copied to `.env`
+before starting the stack:
+
+```bash
+cp default.env .env
+docker compose --env-file .env up -d
+```
+
+`app.env.sample` holds the app-specific overrides and is copied to `app.env`:
+
+```bash
+cp app.env.sample app.env
+```
+
+`composemgr up` applies `app.env` and `default.env` automatically. Raw
+`docker compose` commands need `--env-file .env` to pick up the same values.
+
+### Reverse Proxy
+
+Three standalone compose files ship in this repo:
+
+| File | Use |
+|------|-----|
+| `docker-compose.yaml` | Default, admin UI published on `172.17.0.1:64272` |
+| `docker-compose.traefik.yaml` | Behind an existing external `traefik` network |
+| `docker-compose.tunnel.yaml` | Behind an existing external `cloudflare` tunnel network |
+
+```bash
+docker compose -f docker-compose.traefik.yaml --env-file .env up -d
+```
+
 ## 🌐 Access
 
-- **Web Interface**: http://172.17.0.1:8080
+- **Web Interface**: http://172.17.0.1:64272
+- **Default Admin**: the `APP_ADMIN_EMAIL` and `APP_ADMIN_PASS` values above
+
+Only the management UI (container port 81) is published. This stack does not
+publish the app's 80/443 listeners, so reverse proxy hosts created inside the
+UI are not reachable from the host as configured. To serve those hosts, publish
+80/443 yourself, or place this stack behind a front-end proxy and forward to it
+over the project network.
 
 ## 📂 Volumes
 
-- `./volumes/data/nginx-proxy-manager` - Data storage
-- `./volumes/data/log/nginx-proxy-manager` - Data storage
-- `./volumes/config/nginx-proxy-manager` - Data storage
+- `./volumes/data/nginx-proxy-manager/data` - Application data and configuration
+- `./volumes/data/nginx-proxy-manager/letsencrypt` - Let's Encrypt certificates
+- `./volumes/data/db/postgres/nginx-proxy-manager` - PostgreSQL database data
+
+## 🔐 Security
+
+- Change the admin password immediately after first login
+- Use strong secrets for all database passwords
+- Configure HTTPS before adding any reverse proxy host
+- Do not expose the admin UI to the public internet without a front-end proxy
+- Regularly update Docker images for security patches
+- Backup your data regularly
 
 ## 🔍 Logging
 
 ```shell
-docker compose logs -f proxy
+docker compose --env-file .env logs -f app
 ```
 
 ## 🛠️ Management
 
 ```bash
 # Start services
-docker compose up -d
+docker compose --env-file .env up -d
 
 # Stop services
-docker compose down
+docker compose --env-file .env down
 
 # Update to latest images
-docker compose pull && docker compose up -d
+docker compose --env-file .env pull && docker compose --env-file .env up -d
 
 # View logs
-docker compose logs -f
+docker compose --env-file .env logs -f
 
 # Restart services
-docker compose restart
+docker compose --env-file .env restart
 ```
 
 ## 📋 Requirements

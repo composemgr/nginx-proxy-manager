@@ -1,4 +1,4 @@
-# nginx proxy address - http://172.17.0.1:60132
+# nginx proxy address - http://172.17.0.1:64272
 
 name: nginx-proxy-manager
 x-logging: &default-logging
@@ -8,57 +8,65 @@ x-logging: &default-logging
   driver: json-file
 
 services:
-  proxy:
-    image: 'jc21/nginx-proxy-manager:latest'
-    container_name: nginx-proxy-manager
+  app:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: nginx-proxy-manager-app
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
     hostname: ${BASE_HOST_NAME:-$HOSTNAME}
     restart: always
     pull_policy: always
     logging: *default-logging
     environment:
-      DISABLE_IPV6: 0
       TZ: ${TZ:-America/New_York}
-      CONTAINER_NAME: nginx-proxy-manager
+      CONTAINER_NAME: nginx-proxy-manager-app
       HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      # Initial admin account, used only when the database is empty
+      DISABLE_AUTH: "false"
+      INITIAL_ADMIN_EMAIL: ${APP_ADMIN_EMAIL:-admin@example.com}
+      INITIAL_ADMIN_PASSWORD: ${APP_ADMIN_PASS:-changeme_admin_password}
+      # Database connection
+      DB_HOST: nginx-proxy-manager-db
+      DB_NAME: ${DB_CREATE_DATABASE_NAME:-nginx_proxy_manager}
+      DB_USER: ${DB_USER_NAME:-nginx_proxy_manager}
+      DB_PASSWORD: ${DB_USER_PASS:-changeme_db_password}
+      DB_ROOT_USER: root
+      DB_ROOT_PASSWORD: ${DB_ROOT_PASS:-changeme_root_password}
     ports:
-      - '80:80'
-      - '443:443'
-      - '172.17.0.1:60132:81'
+      - '172.17.0.1:64272:81'
     volumes:
-      - './volumes/data/nginx-proxy-manager:/data'
-      - './volumes/config/nginx-proxy-manager:/etc/letsencrypt'
-    healthcheck:
-      test: ['CMD', '/usr/bin/check-health']
-      interval: 10s
-      timeout: 3s
-    extra_hosts:
-      - 'host.docker.internal:172.17.0.1'
+      - './volumes/data/nginx-proxy-manager/data:/data:z'
+      - './volumes/data/nginx-proxy-manager/letsencrypt:/etc/letsencrypt:z'
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
       - nginx-proxy-manager
-      - proxy
-      - cloudflare
-    labels:
-      - 'traefik.enable=true'
-      - 'cloudflare.enable=true'
-      - 'traefik.docker.network=proxy'
-      - 'cloudflare.service=http://nginx-proxy-manager:81'
-      - 'cloudflare.hostname=nginx-proxy-manager.${CLOUDFLARE_ZONE_NAME:-}'
-      - 'traefik.http.routers.nginx-proxy-manager.entrypoints=http'
-      - 'traefik.http.routers.nginx-proxy-manager-secure.tls=true'
-      - 'traefik.http.routers.nginx-proxy-manager.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.middlewares.nginx-proxy-manager-https-redirect.redirectscheme.scheme=https'
-      - 'traefik.http.routers.nginx-proxy-manager.middlewares=nginx-proxy-manager-https-redirect'
-      - 'traefik.http.routers.nginx-proxy-manager-secure.entrypoints=https'
-      - 'traefik.http.routers.nginx-proxy-manager-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.routers.nginx-proxy-manager-secure.tls.certresolver=cloudflare'
-      - 'traefik.http.routers.nginx-proxy-manager-secure.service=nginx-proxy-manager'
-      - 'traefik.http.services.nginx-proxy-manager.loadbalancer.server.port=81'
+
+  db:
+    image: postgres:latest
+    container_name: nginx-proxy-manager-db
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: nginx-proxy-manager-db
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: nginx-proxy-manager-db
+      POSTGRES_DB: ${DB_CREATE_DATABASE_NAME:-nginx_proxy_manager}
+      POSTGRES_USER: ${DB_USER_NAME:-nginx_proxy_manager}
+      POSTGRES_PASSWORD: ${DB_USER_PASS:-changeme_db_password}
+    volumes:
+      - './volumes/data/db/postgres/nginx-proxy-manager:/var/lib/postgresql/data:z'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - nginx-proxy-manager
 
 networks:
   nginx-proxy-manager:
     name: nginx-proxy-manager
     external: false
-  proxy:
-    external: true
-  cloudflare:
-    external: true
