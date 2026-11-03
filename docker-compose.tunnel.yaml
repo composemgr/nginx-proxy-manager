@@ -29,6 +29,12 @@ services:
       DB_PASSWORD: ${DB_USER_PASS:-changeme_db_password}
       DB_ROOT_USER: root
       DB_ROOT_PASSWORD: ${DB_ROOT_PASS:-changeme_root_password}
+    healthcheck:
+      test: ['CMD', 'curl', '-s', '-o', '/dev/null', '--max-time', '5', 'http://127.0.0.1:81/']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     volumes:
       - './volumes/data/nginx-proxy-manager/data:/data:z'
       - './volumes/data/nginx-proxy-manager/letsencrypt:/etc/letsencrypt:z'
